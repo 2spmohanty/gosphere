@@ -1,8 +1,8 @@
-#Build
+# Build
 
 go build getvcinv main.go
 
 
-#Usage
+# Usage
 
 ./getvcinv -vc vcname -user username -pass password
