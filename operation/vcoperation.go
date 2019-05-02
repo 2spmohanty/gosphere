@@ -94,3 +94,16 @@ func (vcenter *VCenter) GetDatacenter(ctx context.Context, dcname string) (*obje
 	return datacenter, nil
 
 }
+
+//CreateDataCenter creates a datacenter and returns a datacenter object
+func (vcenter *VCenter) CreateDataCenter(ctx context.Context, dcname string) (*object.Datacenter, error) {
+
+	rootFolder := object.NewRootFolder(vcenter.Client.Client)
+	dcMor, error := rootFolder.CreateDatacenter(ctx, dcname)
+	if error != nil {
+		fmt.Println("Could not create datacenter due to error ", error)
+		return nil, error
+	}
+	return dcMor, nil
+
+}
