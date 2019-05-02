@@ -35,6 +35,11 @@ if err != nil {
 }
 ```
 
+# branches
+
+main : It is the stable branch.
+sandbox: Please fork this branch for any changes/pull request.
+
 # Philosophy 
 
 
