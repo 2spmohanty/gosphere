@@ -89,16 +89,11 @@ func (vcenter *VCenter) GetStandAloneHosts(ctx context.Context, datacenter *obje
 
 	pc := property.DefaultCollector(vcenter.Client.Client)
 
-	dcfolder, err := datacenter.Folders(ctx)
-	if err != nil {
-		exit(err)
-	}
-
-	hostfolder := dcfolder.HostFolder
+	hostfolder := vcenter.GetHostFolder(ctx, datacenter)
 	standalonehosts, _ := WalkFolder(ctx, hostfolder)
 
 	var hst []mo.ComputeResource
-	err = pc.Retrieve(ctx, standalonehosts, nil, &hst)
+	err := pc.Retrieve(ctx, standalonehosts, nil, &hst)
 	if err != nil {
 		exit(err)
 	}
@@ -175,4 +170,15 @@ func (vcenter *VCenter) CreateCluster(ctx context.Context, datacenter *object.Da
 	}
 
 	return clustermor, nil
+}
+
+//GetHostFolder Returns the HostFolder of a Datacenter. Used for Creation of Cluster and Addition of standalone Hosts.
+func (vcenter *VCenter) GetHostFolder(ctx context.Context, datacenter *object.Datacenter) *object.Folder {
+	dcfolder, err := datacenter.Folders(ctx)
+	if err != nil {
+		exit(err)
+	}
+
+	hostfolder := dcfolder.HostFolder
+	return hostfolder
 }
