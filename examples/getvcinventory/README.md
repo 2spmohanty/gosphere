@@ -1,6 +1,6 @@
 # Build
 
-go build getvcinv main.go
+go build -o getvcinvmac getvcinventory.go 
 
 
 # Usage
