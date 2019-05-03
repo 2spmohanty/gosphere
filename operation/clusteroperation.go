@@ -38,33 +38,43 @@ func (cops *ClusterOperation) GetAllClusterHosts(clst mo.ClusterComputeResource,
 	ctx := cops.Context
 	client := cops.Vcenter.Client.Client
 	pc := property.DefaultCollector(client)
+	var hosts []types.ManagedObjectReference
 
-	hosts := clst.Host
+	hosts = clst.Host
+
 	var hostref []types.ManagedObjectReference
-	for _, host := range hosts {
-		hostref = append(hostref, host.Reference())
-
-	}
-
 	var hst []mo.HostSystem
-	err := pc.Retrieve(ctx, hostref, nil, &hst)
-	if err != nil {
-		exit(err)
-	}
-
 	var hstpower []mo.HostSystem
 
-	for _, hs := range hst {
-		if string(hs.Runtime.PowerState) == "poweredOn" && strings.Contains(powerstate, "On") {
-			hstpower := append(hstpower, hs)
-			return hstpower, nil
-		} else if string(hs.Runtime.PowerState) == "poweredOff" && strings.Contains(powerstate, "Off") {
-			hstpower := append(hstpower, hs)
-			return hstpower, nil
+	if hosts != nil {
+
+		for _, host := range hosts {
+			hostref = append(hostref, host.Reference())
+
 		}
 
+		err := pc.Retrieve(ctx, hostref, nil, &hst)
+		if err != nil {
+			exit(err)
+		}
+
+		if powerstate != "" {
+			for _, hs := range hst {
+				if string(hs.Runtime.PowerState) == "poweredOn" && strings.Contains(powerstate, "On") {
+					hstpower := append(hstpower, hs)
+					return hstpower, nil
+				} else if string(hs.Runtime.PowerState) == "poweredOff" && strings.Contains(powerstate, "Off") {
+					hstpower := append(hstpower, hs)
+					return hstpower, nil
+				}
+
+			}
+
+		}
+
+		pc.Destroy(ctx)
+
 	}
-	pc.Destroy(ctx)
 
 	return hst, nil
 
