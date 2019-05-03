@@ -28,41 +28,59 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-//GetAllCluster Returns all the cluster object under a data center
-func (vcenter *VCenter) GetAllCluster(ctx context.Context, datacenter *object.Datacenter) ([]mo.ClusterComputeResource, error) {
+type DatacenterOperation struct {
+	Context context.Context
+	Vcenter *VCenter
+}
 
-	finder := find.NewFinder(vcenter.Client.Client, true)
+//GetAllCluster Returns all the cluster object under a data center
+func (dcops *DatacenterOperation) GetAllCluster(datacenter *object.Datacenter) ([]mo.ClusterComputeResource, error) {
+
+	ctx := dcops.Context
+	client := dcops.Vcenter.Client.Client
+	finder := find.NewFinder(client, true)
 	finder.SetDatacenter(datacenter)
 
-	pc := property.DefaultCollector(vcenter.Client.Client)
+	pc := property.DefaultCollector(client)
+
+	var clusters []*object.ClusterComputeResource
 
 	clusters, err := finder.ClusterComputeResourceList(ctx, "*")
 	if err != nil {
-		exit(err)
+		return nil, err
 	}
 
-	var clusterref []types.ManagedObjectReference
-	for _, cluster := range clusters {
-		clusterref = append(clusterref, cluster.Reference())
+	if clusters != nil {
+		var clusterref []types.ManagedObjectReference
+		for _, cluster := range clusters {
+			clusterref = append(clusterref, cluster.Reference())
+
+		}
+
+		// Retrieve All property for all Clusters
+		var clst []mo.ClusterComputeResource
+		err = pc.Retrieve(ctx, clusterref, nil, &clst)
+		if err != nil {
+			return nil, err
+		}
+		pc.Destroy(ctx)
+		return clst, nil
 
 	}
 
-	// Retrieve All property for all Clusters
-	var clst []mo.ClusterComputeResource
-	err = pc.Retrieve(ctx, clusterref, nil, &clst)
-	if err != nil {
-		exit(err)
-	}
+	return nil, nil
 
-	return clst, nil
 }
 
 //GetCluster Returns cluster object under a data center when a cluster name is passed to it.
-func (vcenter *VCenter) GetCluster(ctx context.Context, clustername string) (mo.ClusterComputeResource, error) {
+func (dcops *DatacenterOperation) GetCluster(clustername string) (mo.ClusterComputeResource, error) {
 
-	finder := find.NewFinder(vcenter.Client.Client, true)
+	ctx := dcops.Context
+	client := dcops.Vcenter.Client.Client
 
-	pc := property.DefaultCollector(vcenter.Client.Client)
+	finder := find.NewFinder(client, true)
+
+	pc := property.DefaultCollector(client)
 
 	cluster, err := finder.ClusterComputeResource(ctx, clustername)
 	if err != nil {
@@ -80,38 +98,50 @@ func (vcenter *VCenter) GetCluster(ctx context.Context, clustername string) (mo.
 	if err != nil {
 		exit(err)
 	}
+	pc.Destroy(ctx)
 
 	return clst, nil
 }
 
 //GetStandAloneHosts Returns all the Standalone Hosts Objects in a Cluster
-func (vcenter *VCenter) GetStandAloneHosts(ctx context.Context, datacenter *object.Datacenter) []mo.HostSystem {
+func (dcops *DatacenterOperation) GetStandAloneHosts(datacenter *object.Datacenter) []mo.HostSystem {
 
-	pc := property.DefaultCollector(vcenter.Client.Client)
+	ctx := dcops.Context
+	client := dcops.Vcenter.Client.Client
 
-	hostfolder := vcenter.GetHostFolder(ctx, datacenter)
-	standalonehosts, _ := WalkFolder(ctx, hostfolder)
+	pc := property.DefaultCollector(client)
 
-	var hst []mo.ComputeResource
-	err := pc.Retrieve(ctx, standalonehosts, nil, &hst)
-	if err != nil {
-		exit(err)
-	}
+	hostfolder := dcops.GetHostFolder(datacenter)
+	if hostfolder != nil {
+		standalonehosts, _ := WalkFolder(ctx, hostfolder)
 
-	var hostref [][]types.ManagedObjectReference
-	for _, hst := range hst {
-		hostref = append(hostref, hst.Host)
-	}
-
-	var hs []mo.HostSystem
-	for _, hosts := range hostref {
-		err := pc.Retrieve(ctx, hosts, nil, &hs)
+		var hst []mo.ComputeResource
+		err := pc.Retrieve(ctx, standalonehosts, nil, &hst)
 		if err != nil {
-			exit(err)
+			return nil
 		}
-	}
 
-	return hs
+		if hst != nil {
+			var hostref [][]types.ManagedObjectReference
+			for _, hst := range hst {
+				hostref = append(hostref, hst.Host)
+			}
+			var hs []mo.HostSystem
+			for _, hosts := range hostref {
+				err := pc.Retrieve(ctx, hosts, nil, &hs)
+				if err != nil {
+					exit(err)
+				}
+			}
+			return hs
+		}
+
+		pc.Destroy(ctx)
+		return nil
+
+	}
+	pc.Destroy(ctx)
+	return nil
 
 }
 
@@ -154,7 +184,9 @@ func WalkManagedEntity(childEntity types.ManagedObjectReference) (bool, bool) {
 }
 
 //CreateCluster creates a Cluster under a specified datacenter object.
-func (vcenter *VCenter) CreateCluster(ctx context.Context, datacenter *object.Datacenter, clustername string) (*object.ClusterComputeResource, error) {
+func (dcops *DatacenterOperation) CreateCluster(datacenter *object.Datacenter, clustername string) (*object.ClusterComputeResource, error) {
+	ctx := dcops.Context
+
 	dcfolder, err := datacenter.Folders(ctx)
 	if err != nil {
 		exit(err)
@@ -173,7 +205,8 @@ func (vcenter *VCenter) CreateCluster(ctx context.Context, datacenter *object.Da
 }
 
 //GetHostFolder Returns the HostFolder of a Datacenter. Used for Creation of Cluster and Addition of standalone Hosts.
-func (vcenter *VCenter) GetHostFolder(ctx context.Context, datacenter *object.Datacenter) *object.Folder {
+func (dcops *DatacenterOperation) GetHostFolder(datacenter *object.Datacenter) *object.Folder {
+	ctx := dcops.Context
 	dcfolder, err := datacenter.Folders(ctx)
 	if err != nil {
 		exit(err)

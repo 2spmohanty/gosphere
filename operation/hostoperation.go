@@ -26,11 +26,19 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+type HostOperation struct {
+	Context context.Context
+	Vcenter *VCenter
+}
+
 //GetAllVMs Returns All VMs Objects in a Host Object
-func (vcenter *VCenter) GetAllVMs(ctx context.Context, hst mo.HostSystem) ([]mo.VirtualMachine, error) {
+func (hostops *HostOperation) GetAllVMs(hst mo.HostSystem) ([]mo.VirtualMachine, error) {
+
+	ctx := hostops.Context
+	client := hostops.Vcenter.Client.Client
 
 	vms := hst.Vm
-	pc := property.DefaultCollector(vcenter.Client.Client)
+	pc := property.DefaultCollector(client)
 
 	var refs []types.ManagedObjectReference
 	for _, vm := range vms {

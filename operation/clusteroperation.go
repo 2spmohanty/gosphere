@@ -27,10 +27,17 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-//GetAllClusterHosts Returns all the Hosts in a given Cluster Object.
-func (vcenter *VCenter) GetAllClusterHosts(ctx context.Context, clst mo.ClusterComputeResource, powerstate string) ([]mo.HostSystem, error) {
+type ClusterOperation struct {
+	Context context.Context
+	Vcenter *VCenter
+}
 
-	pc := property.DefaultCollector(vcenter.Client.Client)
+//GetAllClusterHosts Returns all the Hosts in a given Cluster Object.
+func (cops *ClusterOperation) GetAllClusterHosts(clst mo.ClusterComputeResource, powerstate string) ([]mo.HostSystem, error) {
+
+	ctx := cops.Context
+	client := cops.Vcenter.Client.Client
+	pc := property.DefaultCollector(client)
 
 	hosts := clst.Host
 	var hostref []types.ManagedObjectReference
@@ -57,6 +64,7 @@ func (vcenter *VCenter) GetAllClusterHosts(ctx context.Context, clst mo.ClusterC
 		}
 
 	}
+	pc.Destroy(ctx)
 
 	return hst, nil
 
@@ -76,25 +84,29 @@ func GetClusterData(ctx context.Context, pc *property.Collector, clst mo.Cluster
 	//defer cg.Done()
 
 	var hostref []types.ManagedObjectReference
-	for _, host := range hosts {
-		hostref = append(hostref, host.Reference())
 
-	}
+	if hosts != nil {
+		for _, host := range hosts {
+			hostref = append(hostref, host.Reference())
 
-	var hst []mo.HostSystem
-	err := pc.Retrieve(ctx, hostref, nil, &hst)
-	if err != nil {
-		exit(err)
-	}
+		}
 
-	for _, hs := range hst {
-		vmchan := make(chan []VMStruct)
-		if getvm {
-			go GetVMData(ctx, pc, hs, vmchan)
-			vmdata := <-vmchan
-			Hostarray = append(Hostarray, HostStruct{hs.Name, string(hs.Runtime.PowerState), vmdata})
-		} else {
-			Hostarray = append(Hostarray, HostStruct{hs.Name, string(hs.Runtime.PowerState), nil})
+		var hst []mo.HostSystem
+		err := pc.Retrieve(ctx, hostref, nil, &hst)
+		if err != nil {
+			exit(err)
+		}
+
+		for _, hs := range hst {
+			vmchan := make(chan []VMStruct)
+			if getvm {
+				go GetVMData(ctx, pc, hs, vmchan)
+				vmdata := <-vmchan
+				Hostarray = append(Hostarray, HostStruct{hs.Name, string(hs.Runtime.PowerState), vmdata})
+			} else {
+				Hostarray = append(Hostarray, HostStruct{hs.Name, string(hs.Runtime.PowerState), nil})
+			}
+
 		}
 
 	}

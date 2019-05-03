@@ -12,26 +12,29 @@ import (
 func GetVMData(ctx context.Context, pc *property.Collector, hst mo.HostSystem, vmchan chan []VMStruct) {
 
 	//var wg sync.WaitGroup
+	var vms []types.ManagedObjectReference
+	vms = hst.Vm
 
-	vms := hst.Vm
+	vmarray := []VMStruct{}
 
 	//wg.Add(len(vms))
 	//defer wg.Done()
+	if vms != nil {
+		var refs []types.ManagedObjectReference
+		for _, vm := range vms {
+			refs = append(refs, vm.Reference())
+		}
 
-	var refs []types.ManagedObjectReference
-	for _, vm := range vms {
-		refs = append(refs, vm.Reference())
-	}
+		var vmt []mo.VirtualMachine
+		err := pc.Retrieve(ctx, refs, nil, &vmt)
+		if err != nil {
+			exit(err)
+		}
 
-	var vmt []mo.VirtualMachine
-	err := pc.Retrieve(ctx, refs, nil, &vmt)
-	if err != nil {
-		exit(err)
-	}
+		for _, vm := range vmt {
+			vmarray = append(vmarray, VMStruct{vm.Name, string(vm.Summary.Runtime.PowerState)})
 
-	vmarray := []VMStruct{}
-	for _, vm := range vmt {
-		vmarray = append(vmarray, VMStruct{vm.Name, string(vm.Summary.Runtime.PowerState)})
+		}
 
 	}
 
