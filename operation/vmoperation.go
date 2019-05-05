@@ -53,7 +53,7 @@ func GetVMData(ctx context.Context, pc *property.Collector, hst mo.HostSystem, v
 }
 
 //Cone VM Clones a VM
-func CloneVM(ctx context.Context, c *vim25.Client, newVmName string, host *mo.HostSystem, template *object.VirtualMachine, cluster *mo.ClusterComputeResource, datacenter *object.Datacenter, datastore *mo.Datastore) (*object.VirtualMachine, types.TaskInfoState) {
+func CloneVM(ctx context.Context, c *vim25.Client, newVMName string, host *mo.HostSystem, template *object.VirtualMachine, cluster *mo.ClusterComputeResource, datacenter *object.Datacenter, datastore *mo.Datastore) (*object.VirtualMachine, types.TaskInfoState) {
 	//Get the Resourcepool
 	resourcepool := cluster.ResourcePool
 
@@ -80,7 +80,7 @@ func CloneVM(ctx context.Context, c *vim25.Client, newVmName string, host *mo.Ho
 
 	cloneSpec.Location = relocationSpec
 
-	task, _ := template.Clone(ctx, vmfolder, newVmName, *cloneSpec)
+	task, _ := template.Clone(ctx, vmfolder, newVMName, *cloneSpec)
 
 	info, err := task.WaitForResult(ctx, nil)
 
@@ -88,7 +88,7 @@ func CloneVM(ctx context.Context, c *vim25.Client, newVmName string, host *mo.Ho
 		fmt.Println("Task failed  with error ", err)
 	}
 
-	fmt.Printf("%s Cloning completed with %s.\n", newVmName, info.State)
+	fmt.Printf("%s Cloning completed with %s.\n", newVMName, info.State)
 
 	return object.NewVirtualMachine(c, info.Result.(types.ManagedObjectReference)), info.State
 
