@@ -6,12 +6,12 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
-	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-type VmOperation struct {
+//VMOperation is the Reciever Object For all VM Operation
+type VMOperation struct {
 	Context context.Context
 	Vcenter *VCenter
 }
@@ -52,8 +52,12 @@ func GetVMData(ctx context.Context, pc *property.Collector, hst mo.HostSystem, v
 
 }
 
-//Cone VM Clones a VM
-func CloneVM(ctx context.Context, c *vim25.Client, newVMName string, host *mo.HostSystem, template *object.VirtualMachine, cluster *mo.ClusterComputeResource, datacenter *object.Datacenter, datastore *mo.Datastore) (*object.VirtualMachine, types.TaskInfoState) {
+//CloneVM Clones a VM
+func (vmops *VMOperation) CloneVM(newVMName string, poweron bool, host *mo.HostSystem, template *object.VirtualMachine, cluster *mo.ClusterComputeResource, datacenter *object.Datacenter, datastore *mo.Datastore) (*object.VirtualMachine, types.TaskInfoState) {
+
+	ctx := vmops.Context
+	c := vmops.Vcenter.Client.Client
+
 	//Get the Resourcepool
 	resourcepool := cluster.ResourcePool
 
@@ -74,7 +78,7 @@ func CloneVM(ctx context.Context, c *vim25.Client, newVMName string, host *mo.Ho
 	relocationSpec.Datastore = &datastoreRef
 
 	cloneSpec := &types.VirtualMachineCloneSpec{
-		PowerOn:  false,
+		PowerOn:  poweron,
 		Template: false,
 	}
 

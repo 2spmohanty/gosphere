@@ -77,7 +77,9 @@ func main() {
 
 	fmt.Println("Starting Clone ....")
 
-	vmMor, rs := operation.CloneVM(ctx, vcenter.Client.Client, "Test-VM-Last", &hst, vm, &clst, datacenter, &dst)
+	vmops := operation.VMOperation{Context: ctx, Vcenter: vcenter}
+
+	vmMor, rs := vmops.CloneVM("Test-VM-Last", true, &hst, vm, &clst, datacenter, &dst)
 
 	var vmt mo.VirtualMachine
 	err = pc.RetrieveOne(ctx, vmMor.Reference(), nil, &vmt)
