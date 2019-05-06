@@ -27,6 +27,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+//ClusterOperation is the Reciever Object For all Cluster Operation
 type ClusterOperation struct {
 	Context context.Context
 	Vcenter *VCenter

@@ -28,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+//DatacenterOperation is the Reciever Object For all Datacenter Operation
 type DatacenterOperation struct {
 	Context context.Context
 	Vcenter *VCenter
@@ -50,6 +51,9 @@ func (dcops *DatacenterOperation) GetAllCluster(datacenter *object.Datacenter) (
 		return nil, err
 	}
 
+	// Retrieve All property for all Clusters
+	var clst []mo.ClusterComputeResource
+
 	if clusters != nil {
 		var clusterref []types.ManagedObjectReference
 		for _, cluster := range clusters {
@@ -57,18 +61,14 @@ func (dcops *DatacenterOperation) GetAllCluster(datacenter *object.Datacenter) (
 
 		}
 
-		// Retrieve All property for all Clusters
-		var clst []mo.ClusterComputeResource
 		err = pc.Retrieve(ctx, clusterref, nil, &clst)
 		if err != nil {
 			return nil, err
 		}
-		pc.Destroy(ctx)
-		return clst, nil
 
 	}
-
-	return nil, nil
+	pc.Destroy(ctx)
+	return clst, nil
 
 }
 
@@ -82,22 +82,28 @@ func (dcops *DatacenterOperation) GetCluster(clustername string) (mo.ClusterComp
 
 	pc := property.DefaultCollector(client)
 
+	var cluster *object.ClusterComputeResource
+
 	cluster, err := finder.ClusterComputeResource(ctx, clustername)
 	if err != nil {
 		exit(err)
 	}
-
-	var clusterref types.ManagedObjectReference
-
-	clusterref = cluster.Reference()
-
-	// Retrieve All property for the Clusters
 	var clst mo.ClusterComputeResource
 
-	err = pc.RetrieveOne(ctx, clusterref, nil, &clst)
-	if err != nil {
-		exit(err)
+	if cluster != nil {
+		var clusterref types.ManagedObjectReference
+
+		clusterref = cluster.Reference()
+
+		// Retrieve All property for the Clusters
+
+		err = pc.RetrieveOne(ctx, clusterref, nil, &clst)
+		if err != nil {
+			exit(err)
+		}
+
 	}
+
 	pc.Destroy(ctx)
 
 	return clst, nil

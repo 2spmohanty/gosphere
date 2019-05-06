@@ -26,6 +26,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+//HostOperation is the Reciever Object For all Host Operation
 type HostOperation struct {
 	Context context.Context
 	Vcenter *VCenter
@@ -37,18 +38,22 @@ func (hostops *HostOperation) GetAllVMs(hst mo.HostSystem) ([]mo.VirtualMachine,
 	ctx := hostops.Context
 	client := hostops.Vcenter.Client.Client
 
-	vms := hst.Vm
+	var vms []types.ManagedObjectReference
+	vms = hst.Vm
 	pc := property.DefaultCollector(client)
 
-	var refs []types.ManagedObjectReference
-	for _, vm := range vms {
-		refs = append(refs, vm.Reference())
-	}
-
 	var vmt []mo.VirtualMachine
-	err := pc.Retrieve(ctx, refs, nil, &vmt)
-	if err != nil {
-		exit(err)
+
+	if vms != nil {
+		var refs []types.ManagedObjectReference
+		for _, vm := range vms {
+			refs = append(refs, vm.Reference())
+		}
+
+		err := pc.Retrieve(ctx, refs, nil, &vmt)
+		if err != nil {
+			exit(err)
+		}
 	}
 
 	return vmt, nil
